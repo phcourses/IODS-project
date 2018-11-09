@@ -1,4 +1,5 @@
 
 # About the project
+This is a first assignment of the Introduction to Open Data Science 2018 course. Git / rstudio / rmarkdown exercises.
 
-*Write a short description about the course and add a link to your github repository here. This is an R markdown (.Rmd) file so you can use R markdown syntax. See the 'Useful links' page in the mooc area (chapter 1) for instructions.*
+[Github for this exercise](https://github.com/phcourses/IODS-project)
