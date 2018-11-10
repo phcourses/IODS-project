@@ -1,3 +1,91 @@
-# Insert chapter 2 title here
-- Git, Rstudio, Rmarkdown, and interconnectivity between these.
+# Chapter 2: Week 2 regression analysis
+```{r}
+library(data.table)
+
+# Read in learning2014 created with create_learning2014.R
+learning2014<-fread("learning2014.txt")
+```
+### Dimensions and variable characteristics of learning2014
+```{r}
+# Number of records and number of variables in the dataset
+dim(learning2014)
+
+# Variable types (integers are integer variables, numerical are continuous floating number variables)
+str(learning2014)
+```
+Gender: Male = 1,  Female = 2  
+Age: Age (in years) derived from the date of birth  
+Attitude: Global attitude toward statistics  
+Deep: Deep approach  
+Stra: Strategic approach  
+Surf: Surface approach  
+Points: Yhteispisteet (max kaikista)
+
+### Variable summary statistics
+```{r}
+summary(learning2014)
+```
+
+### Histograms of variables to visualizes distribution shape
+```{r, results="hide"}
+par(mfrow=c(3,3))
+sapply(1:ncol(learning2014),function(i) hist(learning2014[[i]], breaks=20, xlab=NA,main=names(learning2014)[i]))
+```
+
+### Density plots
+```{r, results="hide"}
+par(mfrow=c(3,3))
+sapply(1:ncol(learning2014),function(i) plot(density(learning2014[[i]]), xlab=NA,main=names(learning2014)[i]))
+```
+
+Age has a long right tail. Attitude, Deep, Stra, and Surf could be considered approximately normally distributed. From Surf and Stra histograms we can clearly see that they are sum variables and have multiple modes (peaks in the histogram).
+
+### Pairwise relationships between variables
+
+```{r}
+pairs(learning2014)
+```
+
+Visually at least Attitude seems to have relationship with Points. To further investigate this, let's additionally draw a correlation plot.
+
+```{r}
+library(corrplot)
+corrplot(cor(learning2014, method="spearman"), type="lower")
+```
+
+Attitude clearly correlates with Points. Furthermore, Age, gender, stra, and surf all seem to have a small correlation. Given we are allowed to choose only three variables for this exercise, age and gender with attitude seem most interesting combination.
+
+### Linear regression model
+Lets try first a model with Age, Gender (basic demographic covariates) and Attitude as a third one.
+
+```{r}
+#library(rms)
+summary(lm(Points~Age+I(as.factor(Gender))*Attitude, data=learning2014))
+```
+
+Apparently age and gender have no statistical effect in the model, let's keep only attitude.
+
+```{r}
+summary(lm(Points~Attitude, data=learning2014))
+```
+
+As attitude has ambiguous dimensions, let's mean scale it (mean=0, sd=1) for easier interpretation.
+
+```{r}
+summary(lm(Points~I(scale(Attitude)), data=learning2014))
+```
+
+Now we can say that Attitude is highly significant in this model (p=4e-9). It's effect (beta) is 2.5733, which means that one standard deviation increase in Attitude increases Points by apx. 2.57.  
+
+Multiple R-squared is 0.1906 which means that Attitude alone explains 19% of variability of Points.
+
+### Model diagnostics
+```{r}
+plot(lm(Points~Attitude, data=learning2014))
+```
+
+Residuals do not seem to have any non-linear patterns. QQ-plot indicates that residuals are approximately normally distributed which further confirms that linear model assumptions are met. Scale-location points shows no apparent heteroscedasticity although cases 145, 56, and 36 should potentially be further investigated as interesting outlier cases. However, none of these cases (or any other cases), fall beyond Cook's distance in the fourth plot. If they would, it would mean they probably should be excluded from the analysis as outliers that influence model too much. 
+
+In summary, we can conclude, that assumptions of linear model are probably very well met.
+
 
