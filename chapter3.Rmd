@@ -1,0 +1,142 @@
+# Chapter 3: Week 3 Logistic regression analysis
+```{r}
+library(data.table)
+
+# Read in learning2014 created with create_learning2014.R
+alc<-fread("data/alc.txt")
+colnames(alc)
+```
+
+This "Student Performance Data Set" dataset is derived from [UCI Machine learning repository](https://archive.ics.uci.edu/ml/datasets/Student+Performance). It's described as:  
+
+"This data approach student achievement in secondary education of two Portuguese schools. The data attributes include student grades, demographic, social and school related features) and it was collected by using school reports and questionnaires. Two datasets are provided regarding the performance in two distinct subjects: Mathematics (mat) and Portuguese language (por). In [Cortez and Silva, 2008], the two datasets were modeled under binary/five-level classification and regression tasks. Important note: the target attribute G3 has a strong correlation with attributes G2 and G1. This occurs because G3 is the final year grade (issued at the 3rd period), while G1 and G2 correspond to the 1st and 2nd period grades. It is more difficult to predict G3 without G2 and G1, but such prediction is much more useful (see paper source for more details)."
+
+We joined these two datasets (mat and por) together, overlapping variables were either averaged (quantitative) or the one from math selected (qualitative). Alc_use and high_use were calculated from the data.
+
+# Analysis
+
+Let's select four variables for the analysis:
+
+* Age (age is an usual suspect to be used as a covarate) 
++ Sex (Gender as well, probably alcohol consumption more usual among men)
++ Mother's education (Mother's education is know to explain child's education level)
++ Going out with friends (Naturally affects alcohol consumption)
+
+```{r}
+vars<-c("age","sex","Medu","goout")
+str(alc[,vars,with=F])
+```
+Age is a continuous variable, gender is dichotomous, mother's education is multinomial, and going out is ordinal/continuous (likert).  
+
+```{r}
+library(ggplot2)
+library(GGally)
+#ggpairs(alc, columns=c(vars,"high_use"))
+```
+
+## 1. Age
+```{r message=F}
+library(ggridges)
+library(magrittr)
+library(dplyr)
+ggplot(data=alc, aes(x=high_use, y=age)) + geom_boxplot()
+
+# Differenes in mean and standard deviation
+alc %>% group_by(high_use) %>% summarise(mean_age=mean(age), sd_age=sd(age))
+
+# Univariate non-parametric test
+wilcox.test(age~high_use, data=alc)
+```
+
+Distribution seems to be somewhat skewed, thus wilcox.test (mann-whitney). It indicates assocation, although not very strong: Older students are likely to have higher consumption which makes intuitive sense.
+
+## 2. Gender
+```{r message=F}
+ggplot(data=alc, aes(x=sex, fill=high_use)) + geom_bar()
+table(alc$high_use, alc$sex)
+chisq.test(x=alc$high_use, y=alc$sex)
+```
+
+Gender seems to have strong univariate association as anticipated.
+
+## 3. Mother's education
+```{r message=F}
+ggplot(data=alc, aes(x=Medu, fill=high_use)) + geom_bar()
+table(alc$high_use, alc$Medu)
+chisq.test(y=alc$high_use, x=as.factor(alc$Medu))
+```
+
+Mother's education seems to associate slightly which we expected a priori.
+
+## 4. Going out with friends (1-5)
+```{r message=F}
+ggplot(data=alc, aes(x=high_use, y=goout)) + geom_boxplot()
+
+# Differenes in mean and standard deviation
+alc %>% group_by(high_use) %>% summarise(mean_age=mean(goout), sd_age=sd(goout))
+
+# Univariate non-parametric test
+wilcox.test(goout~high_use, data=alc)
+```
+
+"Going out" indiciates a strong univariate association, and makes naively sense.
+
+# Logistic regression
+```{r message=F}
+# Let's use Harrell's excellent regression model strategies package
+library(rms)
+# Let's make sure Medu is factor and scale likert scale "going out" (center to zero, very high=1, very low=-1)
+alc[,Medu := as.factor(Medu)]
+alc[,goout := (goout - 3)/2]
+
+lrm(high_use~age+sex+Medu+goout, data=alc)
+confint.default(lrm(high_use~age+sex+Medu+goout, data=alc))
+ggcoef(glm(high_use~age+sex+Medu+goout, data=alc, family="binomial"), exponentiate = F, errorbar_height=.2, color="blue", sort="ascending")
+
+```
+
+Results seem quite interesting (below p-value, OR and 95% CI respectively):
+
+* *Age* alone seems to associate alone, but when combined with other variables to this model, association seems to disappear (p=0.52, OR=1.07 [0.87-1.33]). Other stronger variables probably explain its effect away (e.g. going out is more likely among older students).
++ *Gender* associates heavily (for men: p=0.0002, OR=2.55 [1.55-4.20] compared to females) 
++ *Mother's education* explains high consumption also. Interestingly, having a mother with only primary education completed (Medu=2) seems to be more strongly protective than having a mother with a higher level education. (For Medu=2: p=0.016, OR=0.04 [0.004-0.56], constrasted to mothers without any education) 
++ *Going out with friends*. Associated strongly with higher alcohol usage (for very high: p<0.0001, OR=4.79 [2.95-7.77], in contrast to mediocre going out level)
+
+# Predictive performance
+```{r message=F}
+# Remove age from the model (p-value was low)
+mod2<-lrm(high_use~sex+Medu+goout, data=alc, x=T, y=T)
+
+# Get predictions an threshold at zero
+preds<-as.numeric(predict(mod2)>0)
+
+# Confusion matrix
+cmat<-table(preds, as.numeric(alc$high_use))
+
+cmat
+
+# Training error rate (proportion is incorrectly classified individuals)
+((cmat[1,2]+cmat[2,1])/sum(cmat))
+```
+
+Error rate (22%) is better than randomly guessing (50%). However, this is likely rather optimistic as it is in-sample error rate.
+
+# Cross-validating
+
+We can do cross-validation natively with rms package.
+```{r message=F}
+validate(mod2, method="crossvalidation", B=10)
+```
+
+Which shows optimism in original model without cross validation (e.g. in Somer's D)  
+
+We can also include all variables to the model and perform backwards stepwise regression in rms package:
+
+```{r message=F}
+# Add all variables to the model (excluding those that were used to create the outcome variable)
+mod3<-lrm(high_use~., data=alc[,-c("alc_use","Dalc","Walc"),with=F],x=T, y=T)
+
+validate(mod3, method="crossvalidation", B=10, bw=T, pr=F)
+```
+
+
