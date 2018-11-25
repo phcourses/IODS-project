@@ -1,0 +1,138 @@
+---
+title: "chapter4"
+author: "PH"
+date: "November 23, 2018"
+output: html_document
+---
+
+# Housing values in Suburbs of Boston
+
+```{r message=F}
+set.seed(12345)
+library(MASS)
+library(dplyr)
+data(Boston)
+glimpse(Boston)
+```
+#### Variable details:
+
++ *crim:* per capita crime rate by town.
++ *zn:* proportion of residential land zoned for lots over 25,000 sq.ft.
++ *indus:* proportion of non-retail business acres per town.
++ *chas:* Charles River dummy variable (= 1 if tract bounds river; 0 otherwise).
++ *nox:* nitrogen oxides concentration (parts per 10 million).
++ *rm:* average number of rooms per dwelling.
++ *age:* proportion of owner-occupied units built prior to 1940.
++ *dis:* weighted mean of distances to five Boston employment centres.
++ *rad:* index of accessibility to radial highways.
++ *tax:* full-value property-tax rate per \$10,000.
++ *ptratio:* pupil-teacher ratio by town.
++ *black:* 1000(Bk - 0.63)^2 where Bk is the proportion of blacks by town.
++ *lstat:* lower status of the population (percent).
++ *medv:* median value of owner-occupied homes in \$1000s.
+
+```{r message=F, warning=F}
+library(GGally)
+library(corrplot)
+corrplot(cor(Boston, method="spearman"), method = "circle")
+newBost<-Boston
+newBost$chas<-as.factor(newBost$chas)
+newBost$rad<-as.factor(newBost$rad)
+ggpairs(newBost)
+```
+
+Many variables seem to have non-normal distribution, many seem even heavy-tailed and few binomial (having two modes, i.e. peaks, such as indus, tax, and rad). Also strong positive and negative correlations are present among several variables. 
+
+fLet's plot density of each variable separately:
+
+```{r}
+par(mfrow=c(4,4), oma = c(5,4,0,0) + 0.1,
+          mar = c(0,0,1,1) + 0.1)
+tmp<-lapply(1:ncol(Boston), function(i) plot(density(as.numeric(Boston[,i])), main=colnames(Boston)[i]))
+```
+
+And next normalize (scale) these variables to have zero mean and standard deviation of one. This can be somewhat questionable for e.g. heavy-tailed distributions where variance and standard devation may not be defined at all, but it's requested by the assignment instructions.
+
+Let's scale and plot new variables (mean has been moved to zero and standard devation scaled to one):
+
+```{r}
+# Scale original variables
+newBost<-Boston
+newBost<-(apply(newBost, 2, function(col) {
+  if (is.numeric(col)) scale(col)
+}))
+
+# Plot scaled variable
+par(mfrow=c(4,4), oma = c(5,4,0,0) + 0.1,
+          mar = c(0,0,1,1) + 0.1)
+tmp<-lapply(1:ncol(newBost), function(i) plot(density(as.numeric(Boston[,i])), main=colnames(newBost)[i]))
+
+newBost<-as.data.frame(newBost)
+
+```
+
+
+Create a factor with quantiles of crim (and replace original variable). Let's also do a 80:20 split of the dataset, by creating a holdout indicator.
+
+```{r}
+newBost$crim<-with(newBost, cut(crim, quantile(crim, c(0, 0.25, 0.5, 0.75, 1)), labels = c("Q1", "Q2", "Q3", "Q4")))
+
+holdout<-rbinom(n = nrow(newBost), size = 1, prob = 0.2)
+print(table(holdout))
+
+trainset<-newBost[holdout==0,]
+testset<-newBost[holdout==1,]
+```
+
+# LDA
+
+Estimate model using trainset, predict in testset (remove original) and compare to original crim in testset. Crosstabulate predictions with original values.
+
+```{r}
+library(MASS)
+mod1<-lda(crim~., data=trainset)
+
+test_crim<-testset$crim
+testset$crim<-predict(mod1, newdata=testset)$class
+
+table(test_crim, testset$crim)
+
+cat(paste("Test error rate:", round(mean(test_crim != testset$crim)*100, 1), "%"))
+```
+
+# K-means clustering
+
+Reload boston and rescale. Sum of squares to find right number of clusters:
+
+```{r message=F, warning=F}
+# Reload Boston and rescale
+newBost<-Boston
+newBost<-(apply(newBost, 2, function(col) {
+  if (is.numeric(col)) scale(col)
+}))
+
+wss <- sapply(1:20, 
+              function(k){kmeans(newBost, k, nstart=50, iter.max = 15)$tot.withinss})
+wss
+plot(1:20, wss,
+     type="b", pch = 19, frame = FALSE, 
+     xlab="Number of clusters K",
+     ylab="Total within-clusters sum of squares")
+
+```
+
+This approach does't seem to give any insight. Let's try Gap statistic:
+
+```{r message=F, warning=F}
+library(cluster)
+cg<-clusGap(newBost, kmeans, 10, B = 100)
+plot(cg)
+```
+
+This approach suggest nine (although increasing number to significantly higher levels could be argued). Let's build a kmeans clustering model with nine clusters and plot that:
+
+```{r message=F, warning=F}
+km1<-kmeans(newBost, 9)
+ggpairs(as.data.frame(newBost), aes(col=as.factor(km1$cluster)))
+```
+
