@@ -1,11 +1,5 @@
----
-title: "chapter4"
-author: "PH"
-date: "November 23, 2018"
-output: html_document
----
-
-# Housing values in Suburbs of Boston
+# Chapter 4: Clustering and classification
+## Housing values in Suburbs of Boston
 
 ```{r message=F}
 set.seed(12345)
@@ -84,7 +78,7 @@ trainset<-newBost[holdout==0,]
 testset<-newBost[holdout==1,]
 ```
 
-# LDA
+## LDA
 
 Estimate model using trainset, predict in testset (remove original) and compare to original crim in testset. Crosstabulate predictions with original values.
 
@@ -100,7 +94,7 @@ table(test_crim, testset$crim)
 cat(paste("Test error rate:", round(mean(test_crim != testset$crim)*100, 1), "%"))
 ```
 
-# K-means clustering
+## K-means clustering
 
 Reload boston and rescale. Sum of squares to find right number of clusters:
 

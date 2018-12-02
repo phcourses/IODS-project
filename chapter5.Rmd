@@ -1,11 +1,6 @@
----
-title: "Chapter 5"
-author: "PH"
-date: "December 1, 2018"
-output: html_document
----
+# Chapter 5: Dimensionality reduction techniques
 
-# Week 5 exercise
+## Exploring dataset
 
 Read in the data and visualize with ggpairs and spearman correlations.
 ```{r message=F, warning=F}
@@ -20,6 +15,8 @@ corrplot(cor(human, method="spearman"))
 ```
 
 All variables seem to be unimodal and most have skewed non-normal distributions, some with heavy tails. Potentially only Edu.Exp could be estimated with a normal distribution. Correlation among Edu2FM, Edu.Exp, Life.Exp, GNI, Mat.Mor, and Ado.Birth seem high (both positive and negative correlations). Labo.FM and Parli.F do not seem to strongly correlate with other variables.
+
+## PCA
 
 Next we were asked to perform a PCA and draw a biplot using raw and then with scaled data. (Scaling non-normal distributions using standard deviations and mean can be considered somehwat questionnable, but let's follow the assignment).
 
@@ -38,7 +35,7 @@ The non-scaled PCA seems to be highly driven by GNI because it has large absolut
 
 In scaled PCA, x-dimension seems to gather variables that are related to individual level freedom / opportunities of women (explains 53% of variance). The y-axis seems to map variables that indicate general society participation level (i.e. politics) of women (explains 16% of variance). Together these two first PCs explain nearly 70% of all variance.
  
-### MCA and Tea data
+## MCA and Tea data
 ```{r message=F, warning=F}
 library(FactoMineR)
 data(tea)

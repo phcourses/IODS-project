@@ -1,4 +1,4 @@
-# Chapter 3: Week 3 Logistic regression analysis
+# Chapter 3: Logistic regression
 ```{r}
 library(data.table)
 
@@ -13,7 +13,7 @@ This "Student Performance Data Set" dataset is derived from [UCI Machine learnin
 
 We joined these two datasets (mat and por) together, overlapping variables were either averaged (quantitative) or the one from math selected (qualitative). Alc_use and high_use were calculated from the data.
 
-# Analysis
+## Analysis
 
 Let's select four variables for the analysis:
 
@@ -34,7 +34,7 @@ library(GGally)
 #ggpairs(alc, columns=c(vars,"high_use"))
 ```
 
-## 1. Age
+### 1. Age
 ```{r message=F}
 library(ggridges)
 library(magrittr)
@@ -50,7 +50,7 @@ wilcox.test(age~high_use, data=alc)
 
 Distribution seems to be somewhat skewed, thus wilcox.test (mann-whitney). It indicates assocation, although not very strong: Older students are likely to have higher consumption which makes intuitive sense.
 
-## 2. Gender
+### 2. Gender
 ```{r message=F}
 ggplot(data=alc, aes(x=sex, fill=high_use)) + geom_bar()
 table(alc$high_use, alc$sex)
@@ -59,7 +59,7 @@ chisq.test(x=alc$high_use, y=alc$sex)
 
 Gender seems to have strong univariate association as anticipated.
 
-## 3. Mother's education
+### 3. Mother's education
 ```{r message=F}
 ggplot(data=alc, aes(x=Medu, fill=high_use)) + geom_bar()
 table(alc$high_use, alc$Medu)
@@ -68,7 +68,7 @@ chisq.test(y=alc$high_use, x=as.factor(alc$Medu))
 
 Mother's education seems to associate slightly which we expected a priori.
 
-## 4. Going out with friends (1-5)
+### 4. Going out with friends (1-5)
 ```{r message=F}
 ggplot(data=alc, aes(x=high_use, y=goout)) + geom_boxplot()
 
@@ -81,7 +81,7 @@ wilcox.test(goout~high_use, data=alc)
 
 "Going out" indiciates a strong univariate association, and makes naively sense.
 
-# Logistic regression
+## Logistic regression
 ```{r message=F}
 # Let's use Harrell's excellent regression model strategies package
 library(rms)
@@ -102,7 +102,7 @@ Results seem quite interesting (below p-value, OR and 95% CI respectively):
 + *Mother's education* explains high consumption also. Interestingly, having a mother with only primary education completed (Medu=2) seems to be more strongly protective than having a mother with a higher level education. (For Medu=2: p=0.016, OR=0.04 [0.004-0.56], constrasted to mothers without any education) 
 + *Going out with friends*. Associated strongly with higher alcohol usage (for very high: p<0.0001, OR=4.79 [2.95-7.77], in contrast to mediocre going out level)
 
-# Predictive performance
+### Predictive performance
 ```{r message=F}
 # Remove age from the model (p-value was low)
 mod2<-lrm(high_use~sex+Medu+goout, data=alc, x=T, y=T)
@@ -121,7 +121,7 @@ cmat
 
 Error rate (22%) is better than randomly guessing (50%). However, this is likely rather optimistic as it is in-sample error rate.
 
-# Cross-validating
+## Cross-validating
 
 We can do cross-validation natively with rms package.
 ```{r message=F}

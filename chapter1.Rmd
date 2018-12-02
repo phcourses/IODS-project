@@ -1,5 +1,6 @@
+# Chapter 1: Tools and methods for open and reproducible research
 
-# About the project
-This is a first assignment of the Introduction to Open Data Science 2018 course. Git / rstudio / rmarkdown exercises.
+## About first week assignment
+This is the first assignment of the Introduction to Open Data Science 2018 course. This week included various git / rstudio / rmarkdown exercises.
 
-[Github for this exercise](https://github.com/phcourses/IODS-project)
+[My Github for all exercises and source code](https://github.com/phcourses/IODS-project)

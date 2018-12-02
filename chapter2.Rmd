@@ -1,11 +1,11 @@
-# Chapter 2: Week 2 regression analysis
+# Chapter 2: Regression and model validation
 ```{r}
 library(data.table)
 
 # Read in learning2014 created with create_learning2014.R
 learning2014<-fread("learning2014.txt")
 ```
-### Dimensions and variable characteristics of learning2014
+## Dimensions and variable characteristics of learning2014
 ```{r}
 # Number of records and number of variables in the dataset
 dim(learning2014)
@@ -26,7 +26,7 @@ Points: Yhteispisteet (max kaikista)
 summary(learning2014)
 ```
 
-### Histograms of variables to visualizes distribution shape
+### Histograms of variables to visualize distribution shapes
 ```{r, results="hide"}
 par(mfrow=c(3,3))
 sapply(1:ncol(learning2014),function(i) hist(learning2014[[i]], breaks=20, xlab=NA,main=names(learning2014)[i]))
@@ -55,7 +55,7 @@ corrplot(cor(learning2014, method="spearman"), type="lower")
 
 Attitude clearly correlates with Points. Furthermore, Age, gender, stra, and surf all seem to have a small correlation. Given we are allowed to choose only three variables for this exercise, age and gender with attitude seem most interesting combination.
 
-### Linear regression model
+## Linear regression model
 Lets try first a model with Age, Gender (basic demographic covariates) and Attitude as a third one.
 
 ```{r}
