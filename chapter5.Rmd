@@ -1,0 +1,103 @@
+---
+title: "Chapter 5"
+author: "PH"
+date: "December 1, 2018"
+output: html_document
+---
+
+# Week 5 exercise
+
+Read in the data and visualize with ggpairs and spearman correlations.
+```{r message=F, warning=F}
+library(data.table)
+library(GGally)
+library(corrplot)
+library(dplyr)
+human<-read.table("http://s3.amazonaws.com/assets.datacamp.com/production/course_2218/datasets/human2.txt", row.names=1, header=T, sep=",")
+summary(human)
+ggpairs(human)
+corrplot(cor(human, method="spearman"))
+```
+
+All variables seem to be unimodal and most have skewed non-normal distributions, some with heavy tails. Potentially only Edu.Exp could be estimated with a normal distribution. Correlation among Edu2FM, Edu.Exp, Life.Exp, GNI, Mat.Mor, and Ado.Birth seem high (both positive and negative correlations). Labo.FM and Parli.F do not seem to strongly correlate with other variables.
+
+Next we were asked to perform a PCA and draw a biplot using raw and then with scaled data. (Scaling non-normal distributions using standard deviations and mean can be considered somehwat questionnable, but let's follow the assignment).
+
+```{r message=F, warning=F}
+pc<-princomp(human)
+biplot(pc, cex=c(0.3, 1), main="Non-scaled PCA")
+
+pc<-princomp(scale(human))
+biplot(pc, cex=c(0.3, 1), main="Scaled PCA", xlab="PC1, female opportunity dimension (individual)", ylab="PC2, general female participation dimension (society level)")
+
+barplot(pc$sdev)
+summary(pc)
+```
+
+The non-scaled PCA seems to be highly driven by GNI because it has large absolute variance compared to other variables. Thus, some kind of scaling makes sense, to give all variables same original weight to start with.
+
+In scaled PCA, x-dimension seems to gather variables that are related to individual level freedom / opportunities of women (explains 53% of variance). The y-axis seems to map variables that indicate general society participation level (i.e. politics) of women (explains 16% of variance). Together these two first PCs explain nearly 70% of all variance.
+ 
+### MCA and Tea data
+```{r message=F, warning=F}
+library(FactoMineR)
+data(tea)
+glimpse(tea)
+```
+
+All variables seem to be multinomial / categorical apart from age variable, and most are not ordered. The proper way to assess their relationships is not through correlations but using e.g. Cramer's V:
+
+```{r message=F, warning=F}
+library(vcd)
+tmp<-lapply(1:ncol(tea), function(i) sapply(1:ncol(tea), function(j) {assocstats(table(tea[,i], tea[,j]))$cramer}) )
+kor<-as.matrix(as.data.frame(tmp))
+rownames(kor)<-colnames(tea)
+colnames(kor)<-colnames(tea)
+corrplot(kor, order="hclust", method="square")
+```
+
+We can see that age seems to be related to all other variables. Also where, price, and how form correlated cluster as well as breakfast and frequency.
+
+Let's conduct multiple correspondence analysis. Data description says: "The data used here concern a questionnaire on tea. We asked to 300 individuals how they drink tea (18 questions), what are their product's perception (12 questions) and some personal details (4 questions). "
+
+Furhtermore, "The first 18 questions are active ones, the 19th is a supplementary quantitative variable (the age) and the last variables are supplementary categorical variables."
+
+Thus, let's set last variables (starting from 19) as supplementary ones (age, col 19, as quantitative).
+
+```{r message=F, warning=F}
+library(factoextra)
+
+mod1<-MCA(tea,quanti.sup=19,quali.sup=20:36, graph=F)
+fviz_screeplot(mod1, addlabels = TRUE, ylim = c(0, 45))
+
+fviz_mca_biplot(mod1, 
+               repel = F, # Avoid text overlapping (slow if many point)
+               ggtheme = theme_minimal())
+
+fviz_mca_var(mod1, choice = "mca.cor", 
+            repel = TRUE, # Avoid text overlapping (slow)
+            ggtheme = theme_minimal())
+
+# Contributions of rows to dimension 1
+fviz_contrib(mod1, choice = "var", axes = 1, top = 15)
+# Contributions of rows to dimension 2
+fviz_contrib(mod1, choice = "var", axes = 2, top = 15)
+
+# Total contribution to dimension 1 and 2
+fviz_contrib(mod1, choice = "var", axes = 1:2, top = 15)
+
+```
+
+### Dim1: 10 Most correlated variables
+
+```{r}
+head(dimdesc(mod1, axes = c(1,2))[[1]]$quali, 10)
+```
+
+### Dim2: 10 Most correlated variables
+
+```{r}
+head(dimdesc(mod1, axes = c(1,2))[[2]]$quali, 10)
+```
+
+
