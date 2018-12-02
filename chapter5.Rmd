@@ -14,7 +14,7 @@ ggpairs(human)
 corrplot(cor(human, method="spearman"))
 ```
 
-All variables seem to be unimodal and most have skewed non-normal distributions, some with heavy tails. Potentially only Edu.Exp could be estimated with a normal distribution. Correlation among Edu2FM, Edu.Exp, Life.Exp, GNI, Mat.Mor, and Ado.Birth seem high (both positive and negative correlations). Labo.FM and Parli.F do not seem to strongly correlate with other variables.
+All variables seem to be unimodal and most have skewed non-normal distributions, some with heavy tails. Potentially only Edu.Exp could be approximated properly with a normal distribution. Correlation among Edu2FM, Edu.Exp, Life.Exp, GNI, Mat.Mor, and Ado.Birth seem high (both positive and negative directions). Labo.FM and Parli.F do not seem to strongly correlate with other variables, and they're conceptually also different, they describe society level differences, whereas prior variables are conceptually individual level.
 
 ## PCA
 
